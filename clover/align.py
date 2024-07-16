@@ -9,7 +9,6 @@ recommend that you replace the global matching algorithm with the following func
 
 typical usage example:
 
-
 """
 def global_align(read_1,read_2):
     """Global Matching Algorithm
