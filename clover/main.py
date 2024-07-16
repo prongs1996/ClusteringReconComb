@@ -216,7 +216,9 @@ class MyProcess(Process):
 
         # Maintain fragment clusters after matching
         if match_found == []:
-            self.saved_clusters[dna_num] = [dna_num]
+            self.saved_clusters[dna_num] = []
+            self.saved_clusters[dna_num].append(dna_tag)
+
             self.cluster_data[dna_num] = {"front": {front_hash: 1}, "middle": {middle_hash: 1}, "back": {back_hash: 1}, "current": [front_hash, middle_hash, back_hash]}
             if front_hash in self.front_hash_dict:
                 self.front_hash_dict[front_hash].append(dna_num)
@@ -234,7 +236,7 @@ class MyProcess(Process):
                 self.back_hash_dict[back_hash] = [dna_num]
         else:
             idx = match_found[0]
-            self.saved_clusters[idx].append(dna_num)
+            self.saved_clusters[idx].append(dna_tag)
             if front_hash in self.cluster_data[idx]["front"]:
                 self.cluster_data[idx]["front"][front_hash] += 1
             else:
@@ -250,36 +252,39 @@ class MyProcess(Process):
             else:
                 self.cluster_data[idx]["back"][back_hash] = 1
 
-                # update fragment cluster representative hash value every 5 strands
-                if len(self.saved_clusters[idx])%5 == 0:
-                    front_max = max(zip(self.cluster_data[idx]["front"].values(), self.cluster_data[idx]["front"].keys()))[1]
-                    middle_max = max(zip(self.cluster_data[idx]["middle"].values(), self.cluster_data[idx]["middle"].keys()))[1]
-                    back_max = max(zip(self.cluster_data[idx]["back"].values(), self.cluster_data[idx]["back"].keys()))[1]
+            # update fragment cluster representative hash value every 5 strands
+            if len(self.saved_clusters[idx])%5 == 0:
+                front_max = max(zip(self.cluster_data[idx]["front"].values(), self.cluster_data[idx]["front"].keys()))[1]
+                middle_max = max(zip(self.cluster_data[idx]["middle"].values(), self.cluster_data[idx]["middle"].keys()))[1]
+                back_max = max(zip(self.cluster_data[idx]["back"].values(), self.cluster_data[idx]["back"].keys()))[1]
 
-                    if front_max != self.cluster_data[idx]["current"][0]:
-                        self.front_hash_dict[self.cluster_data[idx]["current"][0]].remove(idx)
-                        if front_max in self.front_hash_dict:
-                            self.front_hash_dict[front_max].append(idx)
-                        else:
-                            self.front_hash_dict[front_max] = [idx]
-                        self.cluster_data[idx]["current"][0] = front_max
+                if front_max != self.cluster_data[idx]["current"][0]:
+                    self.front_hash_dict[self.cluster_data[idx]["current"][0]].remove(idx)
+                    if front_max in self.front_hash_dict:
+                        self.front_hash_dict[front_max].append(idx)
+                    else:
+                        self.front_hash_dict[front_max] = [idx]
+                    self.cluster_data[idx]["current"][0] = front_max
                     
-                    if middle_max != self.cluster_data[idx]["current"][1]:
-                        self.middle_hash_dict[self.cluster_data[idx]["current"][1]].remove(idx)
-                        if middle_max in self.middle_hash_dict:
-                            self.middle_hash_dict[middle_max].append(idx)
-                        else:
-                            self.middle_hash_dict[middle_max] = [idx]
-                        self.cluster_data[idx]["current"][1] = middle_max
+                if middle_max != self.cluster_data[idx]["current"][1]:
+                    self.middle_hash_dict[self.cluster_data[idx]["current"][1]].remove(idx)
+                    if middle_max in self.middle_hash_dict:
+                        self.middle_hash_dict[middle_max].append(idx)
+                    else:
+                        self.middle_hash_dict[middle_max] = [idx]
+                    self.cluster_data[idx]["current"][1] = middle_max
 
-                    if back_max != self.cluster_data[idx]["current"][2]:
-                        self.back_hash_dict[self.cluster_data[idx]["current"][2]].remove(idx)
-                        if back_max in self.back_hash_dict:
-                            self.back_hash_dict[back_max].append(idx)
-                        else:
-                            self.back_hash_dict[back_max] = [idx]
-                        self.cluster_data[idx]["current"][2] = back_max
-    
+                if back_max != self.cluster_data[idx]["current"][2]:
+                    self.back_hash_dict[self.cluster_data[idx]["current"][2]].remove(idx)
+                    if back_max in self.back_hash_dict:
+                        self.back_hash_dict[back_max].append(idx)
+                    else:
+                        self.back_hash_dict[back_max] = [idx]
+                    self.cluster_data[idx]["current"][2] = back_max
+        
+        # print(self.saved_clusters)
+        
+
     def run(self):
         self.num_dict[self.name + "sum_read_num"] = 0
         self.num_dict[self.name + "error_num"] = 0
@@ -290,7 +295,11 @@ class MyProcess(Process):
             for line in tqdm(self.data):
                 self.cluster(line)
             if 'output_file' in self.config_dict:
+                for i in self.saved_clusters:
+                    self.index_list.append(self.saved_clusters[i])
+                # print(self.index_list)
                 self.num_dict[self.name + "index_list"] = self.index_list
+                # self.num_dict[self.name + "saved_clusters"] = self.saved_clusters
 
             if self.config_dict['Virtual_mode']:
                 tag_sum = 0
@@ -421,7 +430,6 @@ if __name__ == '__main__':
 
 
 
-
     q_output = Queue(N_PROCESS*2)
 
     st = time.time()
@@ -444,7 +452,7 @@ if __name__ == '__main__':
     print("Time:",time.time()-st)
 
     for i in process_dict:
-        process_dict[i].join()    
+        process_dict[i].join()
     
     new_count_dict={}
     new_count_dict["sum_read_num"]=0
@@ -457,6 +465,7 @@ if __name__ == '__main__':
         new_count_dict["error_num"]+=count_dict[key+"error_num"]
         new_count_dict["sum_cluster_num"]+=count_dict[key+"sum_cluster_num"]
         tag_list=count_dict[key+"sum_tag"]
+        #print(count_dict[key+"saved_clusters"])
         
         for i in tag_list:
             if i in new_count_dict["sum_tag"]:
@@ -468,12 +477,14 @@ if __name__ == '__main__':
             new_count_dict["index_list"]+=count_dict[key+"index_list"]
         output_file = open(config_dict['output_file'],'w')
         output_file.write(str(new_count_dict["index_list"]))
+        #print(new_count_dict["index_list"])
         output_file.close()
     if config_dict['Virtual_mode'] == True :
         #print("Number of reads processed:",new_count_dict["sum_read_num"],new_count_dict["error_num"],new_count_dict["sum_cluster_num"])
         print("Number of reads processed:",new_count_dict["sum_read_num"])
         print("Accuracy：",(new_count_dict["sum_read_num"]-new_count_dict["error_num"])/new_count_dict["sum_read_num"])
         if config_dict['tag_mode'] == True :
+            print("Number of Clusters: ",(new_count_dict["sum_cluster_num"]))
             print("Coverage：",len(new_count_dict["sum_tag"])/int(tag_nums))
             print("Redundancy Rate：",(new_count_dict["sum_cluster_num"]-int(tag_nums))/int(tag_nums))
     elif config_dict['Statistical_model'] == True :
