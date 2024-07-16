@@ -33,7 +33,9 @@ config_dict={
     "tag_mode" : False,
     "Statistical_model" : False,
     "same_tree_len" : True,
-    "now_align_alg" : False
+    "now_align_alg" : False,
+
+    #"Cluster_hash_threshold" : 2**7 
 }
 
 opt,args = getopt.getopt(sys.argv[1:],'-I:-L:-D:-V:-H:-T:-P:-O:-h',['help','low','no-fast','no-tag','stat'])
