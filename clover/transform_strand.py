@@ -29,5 +29,6 @@ def main():
     output_file = sys.argv[2]
     transform_clusters(input_file, output_file)
 
+
 if __name__ == '__main__':
     main()
