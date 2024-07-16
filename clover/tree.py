@@ -3,7 +3,6 @@
 This module provides retrieval algorithms based on tree structures, 
 including fuzzy search algorithms that allow for horizontal drift.
 
-
 """
 
 class Trie:
